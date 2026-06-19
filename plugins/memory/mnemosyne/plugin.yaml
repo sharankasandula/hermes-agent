@@ -1,0 +1,7 @@
+name: mnemosyne
+version: 1.0.0
+description: "Local SQLite memory provider with lightweight FTS recall and explicit remember/recall tools."
+pip_dependencies: []
+hooks:
+  - on_memory_write
+  - sync_turn
