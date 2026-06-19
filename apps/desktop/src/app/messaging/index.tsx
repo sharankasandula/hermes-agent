@@ -98,6 +98,8 @@ function fieldCopy(field: MessagingEnvVarInfo, m: Translations['messaging']) {
 export function MessagingView({ setStatusbarItemGroup: _setStatusbarItemGroup, ...props }: MessagingViewProps) {
   const { t } = useI18n()
   const m = t.messaging
+  // Both save/toggle toasts offer the same one-click restart.
+  const restartGatewayAction = { label: t.commandCenter.restartGateway, onClick: () => void runGatewayRestart() }
   const [platforms, setPlatforms] = useState<MessagingPlatformInfo[] | null>(null)
   const [edits, setEdits] = useState<EditMap>({})
   const [query, setQuery] = useState('')
@@ -199,7 +201,7 @@ export function MessagingView({ setStatusbarItemGroup: _setStatusbarItemGroup, .
         kind: 'success',
         title: enabled ? m.platformEnabled(platform.name) : m.platformDisabled(platform.name),
         message: m.restartToApply,
-        action: { label: t.commandCenter.restartGateway, onClick: () => void runGatewayRestart() }
+        action: restartGatewayAction
       })
     } catch (err) {
       notifyError(err, m.failedUpdate(platform.name))
@@ -225,7 +227,7 @@ export function MessagingView({ setStatusbarItemGroup: _setStatusbarItemGroup, .
         kind: 'success',
         title: m.setupSaved(platform.name),
         message: m.restartToReconnect,
-        action: { label: t.commandCenter.restartGateway, onClick: () => void runGatewayRestart() }
+        action: restartGatewayAction
       })
     } catch (err) {
       notifyError(err, m.failedSave(platform.name))
