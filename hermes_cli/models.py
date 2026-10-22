@@ -33,54 +33,9 @@ COPILOT_REASONING_EFFORTS_O_SERIES = ["low", "medium", "high"]
 # Fallback OpenRouter snapshot used when the live catalog is unavailable.
 # (model_id, display description shown in menus)
 OPENROUTER_MODELS: list[tuple[str, str]] = [
-    # Anthropic
-    ("anthropic/claude-opus-4.8",              ""),
-    ("anthropic/claude-opus-4.8-fast",         "2x price, higher output speed"),
-    ("anthropic/claude-sonnet-4.6",            ""),
-    ("anthropic/claude-haiku-4.5",             ""),
-    # OpenAI
-    ("openai/gpt-5.5",                         ""),
-    ("openai/gpt-5.5-pro",                     ""),
-    ("openai/gpt-5.4-mini",                    ""),
-    # Google
-    ("google/gemini-3-pro-preview",            ""),
-    ("google/gemini-3.1-pro-preview",          ""),
-    ("google/gemini-3.5-flash",                ""),
-    # xAI
-    ("x-ai/grok-4.3",                          ""),
-    # DeepSeek
-    ("deepseek/deepseek-v4-pro",               ""),
-    ("deepseek/deepseek-v4-flash",             ""),
-    # Qwen
-    ("qwen/qwen3.7-max",                       ""),
-    ("qwen/qwen3.7-plus",                      ""),
-    ("qwen/qwen3.6-35b-a3b",                   ""),
-    # MoonshotAI
-    ("moonshotai/kimi-k2.6",                   "recommended"),
-    ("moonshotai/kimi-k2.7-code",              ""),
-    # MiniMax
-    ("minimax/minimax-m3",                     ""),
-    # Z-AI
-    ("z-ai/glm-5.2",                           ""),
-    ("z-ai/glm-5.1",                           ""),
-    # Xiaomi
-    ("xiaomi/mimo-v2.5-pro",                   ""),
-    # Tencent
-    ("tencent/hy3-preview",                    ""),
-    # StepFun
-    ("stepfun/step-3.7-flash",                 ""),
-    # NVIDIA
-    ("nvidia/nemotron-3-super-120b-a12b",      ""),
-    # OpenRouter routers
-    ("openrouter/pareto-code",                 "auto-routes to cheapest coder meeting openrouter.min_coding_score"),
-    # Free tier
-    ("openrouter/elephant-alpha",              "free"),
-    ("openrouter/owl-alpha",                   "free"),
-    ("poolside/laguna-m.1:free",               "free"),
-    ("tencent/hy3-preview:free",               "free"),
-    ("nvidia/nemotron-3-super-120b-a12b:free", "free"),
-    ("nvidia/nemotron-3-ultra-550b-a55b:free", "free"),
-    ("inclusionai/ring-2.6-1t:free",           "free"),
+    ("z-ai/glm-5.2", "recommended"),
+    ("deepseek/deepseek-v4-pro", ""),
+    ("deepseek/deepseek-v4-flash", ""),
 ]
 
 _openrouter_catalog_cache: list[tuple[str, str]] | None = None
@@ -1057,6 +1012,14 @@ try:
         _canonical_slugs.add(_pp.name)
 except Exception:
     pass
+
+# Local profile policy: Sharan retired all providers except Codex, Ollama Cloud, and OpenRouter.
+_ALLOWED_LOCAL_PROVIDER_SLUGS = {"openai-codex", "ollama-cloud", "openrouter"}
+CANONICAL_PROVIDERS = [p for p in CANONICAL_PROVIDERS if p.slug in _ALLOWED_LOCAL_PROVIDER_SLUGS]
+_PROVIDER_MODELS = {k: v for k, v in _PROVIDER_MODELS.items() if k in _ALLOWED_LOCAL_PROVIDER_SLUGS}
+_PROVIDER_MODELS["openrouter"] = [mid for mid, _ in OPENROUTER_MODELS]
+_ALLOWED_LOCAL_OLLAMA_CLOUD_MODELS = ["glm-5.2", "deepseek-v4-flash", "deepseek-v4-pro"]
+_PROVIDER_MODELS["ollama-cloud"] = list(_ALLOWED_LOCAL_OLLAMA_CLOUD_MODELS)
 
 # Derived dicts — used throughout the codebase
 _PROVIDER_LABELS = {p.slug: p.label for p in CANONICAL_PROVIDERS}
@@ -3579,7 +3542,7 @@ def fetch_ollama_cloud_models(
     if not force_refresh:
         cached = _load_ollama_cloud_cache()
         if cached is not None:
-            return cached["models"]
+            return [m for m in cached["models"] if m in _ALLOWED_LOCAL_OLLAMA_CLOUD_MODELS]
 
     # 2. Live API probe
     if not api_key:
@@ -3615,13 +3578,14 @@ def fetch_ollama_cloud_models(
                 seen.add(normalized)
                 merged.append(normalized)
         if merged:
+            merged = [m for m in merged if m in _ALLOWED_LOCAL_OLLAMA_CLOUD_MODELS]
             _save_ollama_cloud_cache(merged)
             return merged
 
     # Total failure — return stale cache if available (ignore TTL)
     stale = _load_ollama_cloud_cache(ignore_ttl=True)
     if stale is not None:
-        return stale["models"]
+        return [m for m in stale["models"] if m in _ALLOWED_LOCAL_OLLAMA_CLOUD_MODELS]
 
     return []
 

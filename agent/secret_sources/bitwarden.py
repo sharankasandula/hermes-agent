@@ -598,6 +598,7 @@ def apply_bitwarden_secrets(
     auto_install: bool = True,
     server_url: str = "",
     home_path: Optional[Path] = None,
+    exclude_keys: Optional[set[str]] = None,
 ) -> FetchResult:
     """Pull secrets from BSM and set them on ``os.environ``.
 
@@ -653,6 +654,10 @@ def apply_bitwarden_secrets(
     except RuntimeError as exc:
         result.error = str(exc)
         return result
+
+    exclude_keys = {str(k).strip() for k in (exclude_keys or set()) if str(k).strip()}
+    if exclude_keys:
+        secrets = {k: v for k, v in secrets.items() if k not in exclude_keys}
 
     result.secrets = secrets
     result.warnings.extend(warnings)

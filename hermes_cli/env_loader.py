@@ -325,6 +325,7 @@ def _apply_external_secret_sources(home_path: Path) -> None:
         auto_install=bool(bw_cfg.get("auto_install", True)),
         server_url=str(bw_cfg.get("server_url", "") or "").strip(),
         home_path=home_path,
+        exclude_keys=set(bw_cfg.get("exclude_keys") or bw_cfg.get("blocked_env_keys") or []),
     )
 
     if result.applied:
