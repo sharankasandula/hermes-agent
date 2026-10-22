@@ -1179,9 +1179,14 @@ def connect(
             # WAL doesn't work on network filesystems (NFS/SMB/FUSE). Shared helper
             # falls back to DELETE with one WARNING so kanban stays usable there.
             # See hermes_state._WAL_INCOMPAT_MARKERS for detection logic.
-            from hermes_state import apply_wal_with_fallback
-            apply_wal_with_fallback(conn, db_label=f"kanban.db ({path.name})")
-            conn.execute("PRAGMA synchronous=NORMAL")
+            # Kanban boards are small but opened concurrently by the dashboard,
+            # notifier, and gateway dispatcher. WAL should be fine on ext4, but
+            # on Sharan's NUC it intermittently raises `disk I/O error` during
+            # setup and the boards then get invalid SQLite headers. Prefer the
+            # conservative rollback journal here: lower concurrency, but no WAL
+            # sidecars and no repeated WAL negotiation on every board open.
+            conn.execute("PRAGMA journal_mode=DELETE")
+            conn.execute("PRAGMA synchronous=FULL")
             conn.execute("PRAGMA foreign_keys=ON")
             needs_init = resolved not in _INITIALIZED_PATHS
             if needs_init:
